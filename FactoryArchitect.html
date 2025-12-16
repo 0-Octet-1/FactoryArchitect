@@ -1,0 +1,2667 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --wood-light: #f7f3e9;
+            --wood-medium: #e8dcc0;
+            --wood-dark: #d4c4a0;
+            --metal-light: #f8f9fa;
+            --metal-medium: #e9ecef;
+            --metal-dark: #6c757d;
+            --accent: #2d3748;
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --border: #e2e8f0;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--wood-light) 0%, var(--wood-medium) 100%);
+            color: var(--text-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Subtle wood grain texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(139, 69, 19, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(160, 82, 45, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(210, 180, 140, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 55px 1fr;
+            height: calc(100vh - 120px);
+            gap: 8px;
+            background: var(--wood-light);
+            padding: 8px;
+            max-width: 1800px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: var(--metal-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1.5rem;
+            border-bottom: 2px solid var(--wood-dark);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            height: 55px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .tabs-container {
+            background: var(--metal-light);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs-header {
+            display: flex;
+            background: var(--wood-medium);
+            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: transparent;
+            border: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: var(--wood-light);
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            background: var(--metal-light);
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        #langFlag {
+            font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Segoe UI', sans-serif;
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--wood-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 2rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            height: auto;
+            z-index: 1000;
+            gap: 0.75rem;
+        }
+
+        .panel {
+            background: var(--metal-light);
+            padding: 0.75rem;
+            position: relative;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel.project-config {
+            flex: 2;
+        }
+
+        .panel.tech-stack {
+            flex: 1;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--wood-dark), var(--wood-medium), var(--wood-dark));
+            border-radius: 8px 8px 0 0;
+        }
+
+        .section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+        }
+
+        .section:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--wood-dark));
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 0.6rem;
+        }
+
+        .stack-grid .form-group {
+            margin-bottom: 0.4rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+        }
+
+        .stack-grid .form-label {
+            font-size: 0.55rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background: var(--wood-light);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-weight: 400;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .stack-grid .form-select {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.7rem;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--metal-light);
+            box-shadow: 0 0 0 4px rgba(45, 55, 72, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .governance-info {
+            background: var(--wood-medium);
+            padding: 0.75rem;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent);
+            margin-top: 0.4rem;
+            font-size: 0.7rem;
+            line-height: 1.3;
+            color: var(--text-secondary);
+        }
+
+        .stack-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+            margin-top: 0.3rem;
+        }
+
+        .agents-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+            width: 100%;
+        }
+
+        .agent-group {
+            background: var(--wood-light);
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .agent-group:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .agent-group-header {
+            background: linear-gradient(135deg, var(--wood-medium) 0%, var(--wood-dark) 100%);
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .agent-group-header:hover {
+            background: linear-gradient(135deg, var(--wood-dark) 0%, var(--accent) 100%);
+            color: white;
+        }
+
+        .agent-group-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .agent-count {
+            background: var(--accent);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .toggle-icon {
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+            margin-left: 0.5rem;
+        }
+
+        .agents-container {
+            padding: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .agent-card {
+            background: linear-gradient(145deg, #ffffff 0%, var(--metal-light) 100%);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 12px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+            backdrop-filter: blur(10px);
+        }
+
+        .agent-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .agent-card:hover {
+            transform: translateY(-6px) scale(1.03);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
+            border-color: rgba(102, 126, 234, 0.4);
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .agent-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .agent-card.active {
+            background: linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-color: #667eea;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25), 0 2px 8px rgba(102, 126, 234, 0.15);
+            border-width: 2px;
+        }
+
+        .agent-card.active::before {
+            transform: scaleX(1);
+        }
+
+        .agent-card.locked {
+            background: linear-gradient(135deg, var(--wood-medium) 0%, var(--metal-medium) 100%);
+            border-color: var(--accent);
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .agent-card.locked::before {
+            background: linear-gradient(90deg, var(--accent), #1a202c, var(--accent));
+        }
+
+        .agent-card.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 1rem;
+            background: var(--accent);
+            color: white;
+            padding: 0.2rem 0.4rem;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .agent-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        .agent-role {
+            font-size: 0.8rem;
+            color: #667eea;
+            font-weight: 600;
+            margin: 0.3rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .agent-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        /* Custom Toggle Switch - Style moderne */
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background: var(--metal-medium);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .toggle::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--metal-light) 0%, #ffffff 100%);
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle::after {
+            content: '✕';
+            position: absolute;
+            top: 50%;
+            left: 6px;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active {
+            background: linear-gradient(135deg, var(--accent) 0%, #1a202c 100%);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(45, 55, 72, 0.3);
+        }
+
+        .toggle.active::before {
+            left: 24px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--wood-light) 100%);
+            box-shadow: 0 2px 12px rgba(45, 55, 72, 0.4);
+        }
+
+        .toggle.active::after {
+            content: '✓';
+            left: 30px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .toggle.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .generate-btn {
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #1a202c 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 6px 20px rgba(45, 55, 72, 0.4);
+            min-width: 250px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .generate-btn:hover::before {
+            left: 100%;
+        }
+
+        .generate-btn:hover {
+            background: #1a202c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(45, 55, 72, 0.3);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .terminal {
+            background: var(--accent);
+            color: var(--metal-light);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 1.5rem;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .terminal::before {
+            content: 'SYSTEM LOG';
+            position: absolute;
+            top: 0.5rem;
+            right: 1rem;
+            font-size: 0.7rem;
+            color: rgba(248, 249, 250, 0.5);
+            font-weight: 500;
+            letter-spacing: 0.1em;
+        }
+
+        .terminal-line {
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .terminal-line.success {
+            color: #68d391;
+        }
+
+        .terminal-line.warning {
+            color: #fbd38d;
+        }
+
+        .terminal-line.error {
+            color: #fc8181;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--metal-medium);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--wood-dark);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        /* Language Toggle Button */
+        .lang-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--wood-medium);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .lang-toggle:hover {
+            background: var(--wood-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .lang-toggle #langFlag {
+            font-size: 1.2rem;
+        }
+
+        .lang-toggle #langCode {
+            letter-spacing: 0.05em;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Responsive Design Optimisé */
+        @media (max-width: 1400px) {
+            .agents-container {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 300px 1fr;
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .agents-container {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 0.75rem;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px auto auto 50px;
+                padding: 6px;
+                gap: 8px;
+            }
+
+            .sidebar {
+                order: 2;
+                flex-direction: row;
+                gap: 8px;
+            }
+
+            .main-content {
+                order: 1;
+            }
+
+            .panel {
+                flex: 1;
+            }
+
+            .stack-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 4px;
+                gap: 6px;
+            }
+
+            .sidebar {
+                flex-direction: column;
+            }
+
+            .panel {
+                padding: 1rem;
+            }
+
+            .stack-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .stack-grid .form-group {
+                margin-bottom: 1rem;
+            }
+
+            .stack-grid .form-select {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .agents-container {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .agent-card {
+                padding: 1rem;
+                min-height: 120px;
+            }
+
+            .generate-btn {
+                padding: 0.875rem 2rem;
+                font-size: 0.9rem;
+                min-width: 240px;
+            }
+
+            .header {
+                padding: 0.5rem 1rem;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .logo img {
+                width: 35px;
+                height: 35px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 2px;
+                gap: 4px;
+            }
+
+            .header {
+                padding: 0.5rem;
+            }
+
+            .logo {
+                font-size: 1rem;
+                gap: 0.5rem;
+            }
+
+            .logo img {
+                width: 30px;
+                height: 30px;
+            }
+
+            .panel {
+                padding: 0.75rem;
+            }
+
+            .agent-card {
+                padding: 0.875rem;
+                min-height: 110px;
+            }
+
+            .generate-btn {
+                padding: 0.75rem 1.5rem;
+                font-size: 0.85rem;
+                min-width: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="logo">
+                <img src="https://gregory.leterte.fr/images/Greg.png" alt="Logo"
+                    style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                <span id="headerTitle">Google Antigravity Factory Architect</span>
+            </div>
+            <button class="lang-toggle" onclick="toggleLanguage()" title="Changer de langue / Switch language">
+                <span id="langFlag">🇫🇷</span>
+            </button>
+        </div>
+
+        <!-- SIDEBAR : CONFIGURATION -->
+        <div class="sidebar">
+            <!-- PROJECT CONFIGURATION -->
+            <div class="panel project-config">
+                <div class="section-title" data-i18n="projectConfig">Configuration du Projet</div>
+
+                <div class="form-group">
+                    <label class="form-label" data-i18n="projectName">Nom du Projet</label>
+                    <input type="text" id="projectName" class="form-input" value=""
+                        placeholder="Nom du projet">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" data-i18n="govLevel">Niveau de Gouvernance</label>
+                    <select id="govLevel" class="form-select" onchange="updateGovernance()">
+                        <option value="strict" data-i18n="govStrict">Strict - Prêt pour Production</option>
+                        <option value="paranoid" data-i18n="govParanoid">Paranoïaque - Sécurité Maximale</option>
+                        <option value="advisory" data-i18n="govAdvisory">Consultatif - Mode Développement</option>
+                    </select>
+                    <div id="govInfo" class="governance-info"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" data-i18n="businessDomain">Domaine Métier</label>
+                    <select id="businessDomain" class="form-select">
+                        <option value="gaming">🎮 Gaming / Entertainment</option>
+                        <option value="finance">💰 Finance / Banking</option>
+                        <option value="healthcare">🏥 Healthcare / Medical</option>
+                        <option value="ecommerce">🛒 E-commerce / Retail</option>
+                        <option value="education">📚 Education / EdTech</option>
+                        <option value="enterprise">🏢 Enterprise / B2B</option>
+                        <option value="media">📰 Media / Content</option>
+                        <option value="saas">☁️ SaaS / Platform</option>
+                        <option value="generic">🔧 Generic / Custom</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" data-i18n="orchestrationModel">Modèle d'Orchestration</label>
+                    <select id="orchestrationMode" class="form-select">
+                        <option value="squad" data-i18n="orchSquad">Squad Agile - Horizontal (Recommandé)</option>
+                        <option value="topdown" data-i18n="orchTopdown">Top-Down - Hiérarchique (Entreprise)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- TECHNOLOGY STACK -->
+            <div class="panel tech-stack">
+                <div class="section-title" data-i18n="techStack">Stack Technologique</div>
+
+                <div class="stack-grid">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="frontend">Frontend</label>
+                        <select id="stackFront" class="form-select">
+                            <option value="none">❌ Aucune</option>
+                            <option value="react">⚛️ React</option>
+                            <option value="vue">💚 Vue.js</option>
+                            <option value="angular">🅰️ Angular</option>
+                            <option value="svelte">🧡 Svelte</option>
+                            <option value="solid">💎 SolidJS</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="backend">Backend</label>
+                        <select id="stackBack" class="form-select">
+                            <option value="none">❌ Aucune</option>
+                            <option value="node">🟢 Node.js</option>
+                            <option value="python_fastapi">🐍 Python FastAPI</option>
+                            <option value="python_django">🐍 Python Django</option>
+                            <option value="python_drf">🐍 Python DRF</option>
+                            <option value="go">🐹 Golang</option>
+                            <option value="rust">🦀 Rust</option>
+                            <option value="java">☕ Java Spring</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="database">Base de Données</label>
+                        <select id="stackDb" class="form-select">
+                            <option value="none">❌ Aucune</option>
+                            <option value="postgres">🐘 PostgreSQL</option>
+                            <option value="mongo">🍃 MongoDB</option>
+                            <option value="mysql">🐬 MySQL</option>
+                            <option value="redis">🔴 Redis</option>
+                            <option value="elasticsearch">🔍 Elasticsearch</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="infrastructure">Infrastructure</label>
+                        <select id="stackInfra" class="form-select">
+                            <option value="none">❌ Aucune</option>
+                            <option value="docker">🐳 Docker</option>
+                            <option value="k8s">☸️ Kubernetes</option>
+                            <option value="serverless">⚡ Serverless</option>
+                            <option value="terraform">🏗️ Terraform</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT : ONGLETS -->
+        <div class="main-content">
+            <div class="tabs-container">
+                <div class="tabs-header">
+                    <button class="tab-button active" onclick="switchTab('core')">Équipe Principale</button>
+                    <button class="tab-button" onclick="switchTab('specialists')">Spécialistes</button>
+                    <button class="tab-button" onclick="switchTab('enterprise')">Entreprise</button>
+                    <button class="tab-button" onclick="switchTab('aiml')">IA/ML & LLM</button>
+                </div>
+                
+                <div id="tab-core" class="tab-content active">
+                    <div class="section-title">Équipe Principale</div>
+                    <div class="agents-section" id="coreAgentsSection">
+                        <!-- Core agents will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div id="tab-specialists" class="tab-content">
+                    <div class="section-title">Spécialistes</div>
+                    <div class="agents-section" id="specialistsAgentsSection">
+                        <!-- Specialists agents will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div id="tab-enterprise" class="tab-content">
+                    <div class="section-title">Entreprise</div>
+                    <div class="agents-section" id="enterpriseAgentsSection">
+                        <!-- Enterprise agents will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div id="tab-aiml" class="tab-content">
+                    <div class="section-title">IA/ML & LLM</div>
+                    <div class="agents-section" id="aimlAgentsSection">
+                        <!-- AI/ML agents will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <button class="generate-btn" onclick="generateFactory()">
+            <span data-i18n="generateBtn">🚀 Générer la Configuration .agent</span>
+        </button>
+        <div>Factory Google AntiGravity Gregory Le Terte</div>
+    </div>
+
+    <script>
+        // TRANSLATION SYSTEM
+        let currentLang = 'fr'; // Default to French
+
+        const translations = {
+            fr: {
+                headerTitle: 'Google Antigravity Factory Architect',
+                projectConfig: 'Configuration du Projet',
+                projectName: 'Nom du Projet',
+                projectNamePlaceholder: 'Entrez le nom du projet',
+                govLevel: 'Niveau de Gouvernance',
+                govStrict: 'Strict - Prêt pour Production',
+                govParanoid: 'Paranoïaque - Sécurité Maximale',
+                govAdvisory: 'Consultatif - Mode Développement',
+                businessDomain: 'Domaine Métier',
+                orchestrationModel: "Modèle d'Orchestration",
+                orchSquad: 'Squad Agile - Horizontal (Recommandé)',
+                orchTopdown: 'Top-Down - Hiérarchique (Entreprise)',
+                techStack: 'Stack Technologique',
+                frontend: 'Frontend',
+                backend: 'Backend',
+                database: 'Base de Données',
+                infrastructure: 'Infrastructure',
+                agentConfig: 'Configuration des Agents',
+                generateBtn: '🚀 Générer la Configuration .agent',
+                govDescStrict: 'Sentinelles actives avec droit de veto. Commandes terminal restreintes. Revue obligatoire avant déploiement.',
+                govDescParanoid: 'Architecture zéro confiance. Double validation par modèles adverses. Blocage immédiat sur violations.',
+                govDescAdvisory: 'Gouvernance flexible pour prototypage rapide. Alertes sans blocage automatique. Permissions étendues pour tests.',
+                groupCoreTeam: 'Équipe Principale',
+                groupSpecialists: 'Spécialistes',
+                groupEnterprise: 'Entreprise',
+                groupAIMLLLM: 'IA/ML & LLM',
+                agents: {
+                    root: { name: 'Gestionnaire Racine', role: 'Architecte Système', description: 'Orchestre toute l\'usine, délègue aux chefs de squad, maintient l\'architecture' },
+                    esteban: { name: 'Esteban', role: 'Lead Tech', description: 'Avocat du clean code, impose les standards de test, revoit les implémentations techniques' },
+                    mendoza: { name: 'Mendoza', role: 'Chef Produit', description: 'Définit la vision produit, priorise les fonctionnalités, assure l\'excellence UX' },
+                    constance: { name: 'Constance', role: 'Gouvernance', description: 'Fait respecter les règles, droit de veto, assure la conformité éthique' },
+                    prudence: { name: 'Prudence', role: 'Sécurité', description: 'Scanne les vulnérabilités, bloque le code non sûr, maintient le zéro-trust' },
+                    tao: { name: 'Tao', role: 'Assurance Qualité', description: 'Spécialiste tests auto, expert crash test, assure la fiabilité système' },
+                    hortense: { name: 'Hortense', role: 'Expert Game Design', description: 'Spécialiste jeux de plateau, mécaniques, assure un gameplay fun et équilibré' },
+                    atlas: { name: 'Atlas', role: 'Ingénieur DevOps', description: 'Infra as code, expert conteneurisation, assure des déploiements scalables' },
+                    chloe: { name: 'Chloé', role: 'Content Manager', description: 'Crée tout le contenu texte, documentation, maintient le ton et le style' },
+                    zia: { name: 'Zia', role: 'Ingénieur Chaos', description: 'Simule le comportement utilisateur, stress tests, trouve les cas limites' },
+                    finops: { name: 'FinOps', role: 'Optimisateur Coûts', description: 'Surveille les coûts cloud, optimise les ressources, évite les dépassements' },
+                    data_eng: { name: 'Data Engineer', role: 'Spécialiste ETL', description: 'Construit les pipelines de données, gère les BDD, assure l\'intégrité' },
+                    legacy: { name: 'Archéologue', role: 'Systèmes Hérités', description: 'Comprend les vieux codes, fait le pont entre legacy et moderne' },
+                    zeus: { name: 'Zeus', role: 'PDG', description: 'Vision stratégique, relations parties prenantes, décisions haut niveau' },
+                    athena: { name: 'Athena', role: 'Directrice Opérations', description: 'Gestion opérations quotidiennes, optimisation processus, coordination' },
+                    midas: { name: 'Midas', role: 'Directeur Financier', description: 'Stratégie financière, gestion budget, optimisation ROI' },
+                    cerberus: { name: 'Cerberus', role: 'Chef Sécurité', description: 'Politique sécurité entreprise, conformité, évaluation menaces' },
+                    ada: { name: 'Ada', role: 'Architecte LLM', description: 'Conçoit architectures LLM, choisit modèles, implémente stratégies fine-tuning' },
+                    vector: { name: 'Vector', role: 'Ingénieur RAG', description: 'Construit systèmes retrieval, optimise embeddings, gère bases vectorielles' },
+                    prompt_master: { name: 'Maître Prompt', role: 'Ingénieur Prompt', description: 'Crée prompts optimaux, chaîne de pensée, assure cohérence LLM' },
+                    neural: { name: 'Neural', role: 'Expert Fine-Tuning', description: 'Implémente LoRA/QLoRA, pipelines d\'entraînement, optimise performance' },
+                    eval: { name: 'Evaluateur', role: 'QA LLM', description: 'Teste sorties LLM, mesure hallucinations, assure qualité et sécurité' },
+                    context: { name: 'Gestionnaire Contexte', role: 'Spécialiste Mémoire', description: 'Gère contexte conversation, systèmes mémoire, optimise tokens' },
+                    multimodal: { name: 'Multimodal', role: 'Expert Vision & Audio', description: 'Intègre modèles vision, traitement audio, capacités multimodales' },
+                    orchestrator: { name: 'Orchestrateur', role: 'Coordinateur Multi-Agents', description: 'Gère workflows agents, coordonne systèmes multi-agents' },
+                    llmops: { name: 'LLMOps', role: 'Ingénieur Production', description: 'Déploie modèles, surveille perfs, A/B testing, versioning modèles' },
+                    guardrails: { name: 'Garde-fous', role: 'Ingénieur Sûreté', description: 'Implémente garde-fous (NeMo), filtre contenu, prévient sorties nocives' },
+                    data_curator: { name: 'Curateur Données', role: 'Spécialiste Dataset', description: 'Prépare données entraînement, annotation, qualité et diversité' },
+                    synthetic: { name: 'Synthétique', role: 'Générateur Données', description: 'Génère données synthétiques, augmente datasets, benchmarks' },
+                    framework_expert: { name: 'Expert Framework', role: 'LangChain/LlamaIndex', description: 'Spécialiste frameworks LangChain, LlamaIndex, Haystack' },
+                    knowledge_graph: { name: 'Knowledge Graph', role: 'Ingénieur GraphRAG', description: 'Construit graphes savoir, GraphRAG, gère bases graphes' },
+                    bias_auditor: { name: 'Auditeur Biais', role: 'Spécialiste Équité', description: 'Détecte et atténue biais, assure équité modèle et éthique AI' },
+                    cost_optimizer_llm: { name: 'Optimisateur Coûts', role: 'Gestionnaire Coûts LLM', description: 'Optimise coûts API, stratégies cache, routage modèles économiques' }
+                }
+            },
+            en: {
+                headerTitle: 'Google Antigravity Factory Architect',
+                projectConfig: 'Project Configuration',
+                projectName: 'Project Name',
+                projectNamePlaceholder: 'Enter project name',
+                govLevel: 'Governance Level',
+                govStrict: 'Strict - Production Ready',
+                govParanoid: 'Paranoid - Maximum Security',
+                govAdvisory: 'Advisory - Development Mode',
+                businessDomain: 'Business Domain',
+                orchestrationModel: 'Orchestration Model',
+                orchSquad: 'Squad Agile - Horizontal (Recommended)',
+                orchTopdown: 'Top-Down - Hierarchical (Enterprise)',
+                techStack: 'Technology Stack',
+                frontend: 'Frontend',
+                backend: 'Backend',
+                database: 'Database',
+                infrastructure: 'Infrastructure',
+                agentConfig: 'Agent Configuration',
+                generateBtn: '🚀 Generate .agent Configuration',
+                govDescStrict: 'Sentinels active with veto power. Restricted terminal commands. Mandatory review before deployment.',
+                govDescParanoid: 'Zero trust architecture. Double validation by adversarial models. Immediate blocking on violations.',
+                govDescAdvisory: 'Flexible governance for rapid prototyping. Alerts without automatic blocking. Extended permissions for testing.',
+                groupCoreTeam: 'Core Team',
+                groupSpecialists: 'Specialists',
+                groupEnterprise: 'Enterprise',
+                groupAIMLLLM: 'AI/ML & LLM'
+            }
+        };
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'fr' ? 'en' : 'fr';
+            updateLanguage();
+        }
+
+        function updateLanguage() {
+            const lang = translations[currentLang];
+
+            // Update flag and code
+            document.getElementById('langFlag').textContent = currentLang === 'fr' ? '🇫🇷' : '🇬🇧';
+            // Flag only mode - text removed
+            // Update all elements with data-i18n attribute
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (key && lang[key]) {
+                    element.textContent = lang[key];
+                }
+            });
+
+            // Update placeholder
+            const projectInput = document.getElementById('projectName');
+            if (projectInput) {
+                projectInput.placeholder = lang.projectNamePlaceholder;
+            }
+
+            // Re-initialize agents to update group titles
+            initializeAgents();
+
+            // Update governance info if visible
+            updateGovernance();
+        }
+
+        // AGENTS DATABASE
+        const agentGroups = [
+            {
+                title: "Core Team",
+                agents: [
+                    { id: 'root', name: 'Root Manager', role: 'System Architect', description: 'Orchestrates the entire factory, delegates tasks to squad leads, maintains system architecture', active: true, locked: true },
+                    { id: 'esteban', name: 'Esteban', role: 'Tech Lead', description: 'Clean code advocate, enforces testing standards, reviews all technical implementations', active: true },
+                    { id: 'mendoza', name: 'Mendoza', role: 'Product Lead', description: 'Defines product vision, prioritizes features, ensures user experience excellence', active: true },
+                    { id: 'constance', name: 'Constance', role: 'Governance', description: 'Enforces governance rules, has veto power, ensures ethical compliance', active: true },
+                    { id: 'prudence', name: 'Prudence', role: 'Security', description: 'Scans for vulnerabilities, blocks unsafe code, maintains zero-trust principles', active: true },
+                    { id: 'tao', name: 'Tao', role: 'Quality Assurance', description: 'Automated testing specialist, crash test expert, ensures system reliability', active: true }
+                ]
+            },
+            {
+                title: "Specialists",
+                agents: [
+                    { id: 'hortense', name: 'Hortense', role: 'Game Design Expert', description: 'Board game specialist, mechanics expert, ensures fun and balanced gameplay', active: false },
+                    { id: 'atlas', name: 'Atlas', role: 'DevOps Engineer', description: 'Infrastructure as code, containerization expert, ensures scalable deployments', active: false },
+                    { id: 'chloe', name: 'Chloé', role: 'Content Manager', description: 'Creates all text content, documentation, maintains consistent tone and style', active: true },
+                    { id: 'zia', name: 'Zia', role: 'Chaos Engineer', description: 'Simulates user behavior, stress tests systems, finds edge cases and failures', active: false },
+                    { id: 'finops', name: 'FinOps', role: 'Cost Optimizer', description: 'Monitors cloud costs, optimizes resource usage, prevents budget overruns', active: false },
+                    { id: 'data_eng', name: 'Data Engineer', role: 'ETL Specialist', description: 'Builds data pipelines, manages databases, ensures data integrity and flow', active: false },
+                    { id: 'legacy', name: 'Archaeologist', role: 'Legacy Systems', description: 'Understands old codebases, bridges legacy systems with modern architecture', active: false }
+                ]
+            },
+            {
+                title: "Enterprise",
+                agents: [
+                    { id: 'zeus', name: 'Zeus', role: 'Chief Executive', description: 'Strategic vision, stakeholder relations, high-level decision making', active: false },
+                    { id: 'athena', name: 'Athena', role: 'Chief Operating', description: 'Daily operations management, process optimization, team coordination', active: false },
+                    { id: 'midas', name: 'Midas', role: 'Chief Financial', description: 'Financial strategy, budget management, ROI optimization', active: false },
+                    { id: 'cerberus', name: 'Cerberus', role: 'Chief Security', description: 'Enterprise security policy, compliance management, threat assessment', active: false }
+                ]
+            },
+            {
+                title: "AI/ML & LLM",
+                agents: [
+                    { id: 'ada', name: 'Ada', role: 'LLM Architect', description: 'Designs LLM architectures, selects optimal models, implements fine-tuning strategies', active: false },
+                    { id: 'vector', name: 'Vector', role: 'RAG Engineer', description: 'Builds retrieval systems, optimizes embeddings, manages vector databases (Pinecone, Weaviate)', active: false },
+                    { id: 'prompt_master', name: 'Prompt Master', role: 'Prompt Engineer', description: 'Crafts optimal prompts, implements chain-of-thought, ensures consistent LLM outputs', active: false },
+                    { id: 'neural', name: 'Neural', role: 'Fine-Tuning Expert', description: 'Implements LoRA/QLoRA, manages training pipelines, optimizes model performance', active: false },
+                    { id: 'eval', name: 'Evaluator', role: 'LLM Quality Assurance', description: 'Tests LLM outputs, measures hallucinations, ensures response quality and safety', active: false },
+                    { id: 'context', name: 'Context Manager', role: 'Memory Specialist', description: 'Manages conversation context, implements memory systems, optimizes token usage', active: false },
+                    { id: 'multimodal', name: 'Multimodal', role: 'Vision & Audio Expert', description: 'Integrates vision models, audio processing, multimodal AI capabilities', active: false },
+                    { id: 'orchestrator', name: 'Orchestrator', role: 'Multi-Agent Coordinator', description: 'Manages agent workflows, coordinates multi-agent systems (AutoGPT, CrewAI, LangGraph)', active: false },
+                    { id: 'llmops', name: 'LLM Ops', role: 'Production Engineer', description: 'Deploys models, monitors performance, implements A/B testing, manages model versioning', active: false },
+                    { id: 'guardrails', name: 'Guardrails', role: 'Safety Engineer', description: 'Implements safety guardrails (NeMo, Llama Guard), prevents harmful outputs, content filtering', active: false },
+                    { id: 'data_curator', name: 'Data Curator', role: 'Dataset Specialist', description: 'Prepares training data, handles annotation, ensures data quality and diversity', active: false },
+                    { id: 'synthetic', name: 'Synthetic', role: 'Data Generator', description: 'Generates synthetic training data, augments datasets, creates evaluation benchmarks', active: false },
+                    { id: 'framework_expert', name: 'Framework Expert', role: 'LangChain/LlamaIndex', description: 'Specialist in LangChain, LlamaIndex, Haystack frameworks for LLM applications', active: false },
+                    { id: 'knowledge_graph', name: 'Knowledge Graph', role: 'GraphRAG Engineer', description: 'Builds knowledge graphs, implements GraphRAG, manages Neo4j/graph databases', active: false },
+                    { id: 'bias_auditor', name: 'Bias Auditor', role: 'Fairness Specialist', description: 'Detects and mitigates bias, ensures model fairness, compliance with AI ethics', active: false },
+                    { id: 'cost_optimizer_llm', name: 'Cost Optimizer', role: 'LLM Cost Manager', description: 'Optimizes API costs, implements caching strategies, routes to cost-effective models', active: false }
+                ]
+            }
+        ];
+
+        // INITIALIZE AGENTS
+        function initializeAgents() {
+            const lang = translations[currentLang];
+
+            // Clear all sections
+            document.getElementById('coreAgentsSection').innerHTML = '';
+            document.getElementById('specialistsAgentsSection').innerHTML = '';
+            document.getElementById('enterpriseAgentsSection').innerHTML = '';
+            document.getElementById('aimlAgentsSection').innerHTML = '';
+
+            // Map group titles to section IDs
+            const groupSectionMap = {
+                'Core Team': 'coreAgentsSection',
+                'Specialists': 'specialistsAgentsSection',
+                'Enterprise': 'enterpriseAgentsSection',
+                'AI/ML & LLM': 'aimlAgentsSection'
+            };
+
+            agentGroups.forEach((group) => {
+                const sectionId = groupSectionMap[group.title];
+                if (!sectionId) return;
+                
+                const section = document.getElementById(sectionId);
+                const agentsContainer = document.createElement('div');
+                agentsContainer.className = 'agents-container';
+
+                group.agents.forEach(agent => {
+                    const agentCard = document.createElement('div');
+                    agentCard.className = `agent-card ${agent.active ? 'active' : ''} ${agent.locked ? 'locked' : ''}`;
+
+                    if (!agent.locked) {
+                        agentCard.onclick = () => toggleAgent(agent.id);
+                    }
+
+                    // Translate agent details if available
+                    let name = agent.name;
+                    let role = agent.role;
+                    let description = agent.description;
+
+                    if (lang.agents && lang.agents[agent.id]) {
+                        name = lang.agents[agent.id].name || name;
+                        role = lang.agents[agent.id].role || role;
+                        description = lang.agents[agent.id].description || description;
+                    }
+
+                    agentCard.innerHTML = `
+                        <div class="agent-header">
+                            <span class="agent-name">${name}</span>
+                            <div class="toggle ${agent.active ? 'active' : ''}" onclick="event.stopPropagation(); ${!agent.locked ? 'toggleAgent(\'' + agent.id + '\')' : ''}"></div>
+                        </div>
+                        <div class="agent-role">${role}</div>
+                        <div class="agent-desc">${description}</div>
+                    `;
+                    agentsContainer.appendChild(agentCard);
+                });
+
+                section.appendChild(agentsContainer);
+            });
+        }
+
+        // TOGGLE AGENT
+        function toggleAgent(agentId) {
+            let agent = null;
+            agentGroups.forEach(group => {
+                const found = group.agents.find(a => a.id === agentId);
+                if (found) agent = found;
+            });
+
+            if (agent && !agent.locked) {
+                agent.active = !agent.active;
+                initializeAgents();
+                logTerminal(`${agent.active ? 'Activated' : 'Deactivated'}: ${agent.name}`, agent.active ? 'success' : 'warning');
+            }
+        }
+
+        // SWITCH TAB
+        function switchTab(tabName) {
+            // Désactiver tous les onglets
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Activer l'onglet sélectionné
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        // UPDATE GOVERNANCE
+        function updateGovernance() {
+            const level = document.getElementById('govLevel').value;
+            const info = document.getElementById('govInfo');
+            const lang = translations[currentLang];
+
+            const descriptionKeys = {
+                'strict': 'govDescStrict',
+                'paranoid': 'govDescParanoid',
+                'advisory': 'govDescAdvisory'
+            };
+
+            info.textContent = lang[descriptionKeys[level]];
+            logTerminal(`Security level set to: ${level.toUpperCase()}`, 'warning');
+        }
+
+        // TERMINAL LOGGING
+        function logTerminal(message, type = 'info') {
+            // Log to console for debugging
+            console.log(`[${type.toUpperCase()}] ${message}`);
+
+            // Try to find terminal, if not available, just continue
+            const terminal = document.getElementById('terminal');
+            if (terminal) {
+                const line = document.createElement('div');
+                line.className = `terminal-line ${type}`;
+                line.textContent = `> ${message}`;
+                terminal.appendChild(line);
+                terminal.scrollTop = terminal.scrollHeight;
+
+                // Keep only last 20 lines
+                while (terminal.children.length > 20) {
+                    terminal.removeChild(terminal.firstChild);
+                }
+            }
+        }
+
+        // GENERATE FACTORY
+        async function generateFactory() {
+            console.log('Generate Factory button clicked!');
+
+            try {
+                const projectInput = document.getElementById('projectName').value.trim();
+                const project = projectInput || 'Project Omega'; // Utilise 'Project Omega' si vide
+                const activeAgents = [];
+
+                agentGroups.forEach(group => {
+                    group.agents.forEach(agent => {
+                        if (agent.active) activeAgents.push(agent);
+                    });
+                });
+
+                console.log(`Project: ${project}, Active agents: ${activeAgents.length}`);
+
+                logTerminal(`Initializing: ${project}`, 'success');
+                logTerminal(`Active agents: ${activeAgents.length}`, 'info');
+
+                // Simulate generation process
+                setTimeout(() => logTerminal('Generating governance configuration...', 'info'), 300);
+                setTimeout(() => logTerminal('Configuring MCP adapters...', 'info'), 600);
+                setTimeout(() => logTerminal('Creating agent personas...', 'info'), 900);
+                setTimeout(() => logTerminal('Compiling blueprint...', 'info'), 1200);
+
+                setTimeout(async () => {
+                    try {
+                        const zip = new JSZip();
+                        const root = zip.folder(".agent");
+
+                        // 1. CONSTITUTION (Governance)
+                        logTerminal('Génération governance.yaml...', 'info');
+                        const constitutionFolder = root.folder("00_CONSTITUTION");
+                        const governance = generateGovernance();
+                        constitutionFolder.file("governance.yaml", governance);
+
+                        // 2. INFRASTRUCTURE (MCP Config)
+                        logTerminal('Configuration MCP adaptateurs...', 'info');
+                        const infraFolder = root.folder("01_INFRASTRUCTURE");
+                        const mcpConfig = generateMCPConfig();
+                        infraFolder.file("mcp_config.json", mcpConfig);
+
+                        // 3. PERSONAS (Agent Definitions)
+                        logTerminal('Création des personas agents...', 'info');
+                        const personasFolder = root.folder("rules");
+                        activeAgents.forEach(agent => {
+                            const persona = generatePersona(agent);
+                            const safeName = agent.name.toLowerCase()
+                                .replace(/[^a-z0-9]/g, '_')
+                                .replace(/_+/g, '_')
+                                .replace(/^_|_$/g, '');
+                            personasFolder.file(`${agent.id}_${safeName}.md`, persona);
+                        });
+
+                        // 4. ORCHESTRATION (Manager Flow)
+                        logTerminal('Génération flux orchestration...', 'info');
+                        const orchestrationFolder = root.folder("03_ORCHESTRATION");
+                        const managerFlow = generateManagerFlow();
+                        orchestrationFolder.file("manager_orchestration_flow.mermaid", managerFlow);
+
+                        // 5. OBSERVABILITY (Monitoring)
+                        logTerminal('Configuration observabilité...', 'info');
+                        const observabilityFolder = root.folder("04_OBSERVABILITY");
+                        const incidentPlaybook = generateIncidentPlaybook();
+                        observabilityFolder.file("incident_response_playbook.md", incidentPlaybook);
+
+                        // 6. SENTINEL (Audit Prompts)
+                        logTerminal('Déploiement sentinelles...', 'info');
+                        const sentinelFolder = root.folder("05_SENTINEL");
+                        const sentinelPrompt = generateSentinelPrompt();
+                        sentinelFolder.file("sentinel_prompt.md", sentinelPrompt);
+
+                        // 6.5. WORKFLOWS (Operational Processes)
+                        logTerminal('Création workflows opérationnels...', 'info');
+                        const workflowsFolder = root.folder("workflows");
+                        const workflows = generateWorkflows();
+                        workflows.forEach(wf => {
+                            workflowsFolder.file(wf.filename, wf.content);
+                        });
+
+                        // 7. INITIALIZATION PROMPT (Context Loading)
+                        logTerminal('Création prompt d\'initialisation...', 'info');
+                        const initPrompt = generateInitializationPrompt(project, activeAgents);
+                        root.file("INITIALIZATION_PROMPT.md", initPrompt);
+
+                        // 8. README Principal
+                        logTerminal('Finalisation documentation...', 'info');
+                        const readme = generateReadme(project, activeAgents);
+                        root.file("README.md", readme);
+
+                        // 9. GÉNÉRATION ET TÉLÉCHARGEMENT
+                        logTerminal('Compression du blueprint...', 'warning');
+                        const content = await zip.generateAsync({
+                            type: "blob",
+                            compression: "DEFLATE",
+                            compressionOptions: {
+                                level: 6
+                            }
+                        });
+                        const safeProjectName = project.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+                        saveAs(content, `.agent.zip`);
+
+                        logTerminal('✅ Blueprint complet généré !', 'success');
+                        logTerminal('📦 Téléchargement automatique initié', 'success');
+                        logTerminal(`📁 Fichier: .agent.zip`, 'success');
+                    } catch (error) {
+                        console.error('Erreur génération:', error);
+                        logTerminal('❌ Erreur lors de la génération: ' + error.message, 'error');
+                    }
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error generating factory:', error);
+                logTerminal('Error generating factory: ' + error.message, 'error');
+            }
+        }
+
+        // GENERATE GOVERNANCE
+        function generateGovernance() {
+            const level = document.getElementById('govLevel').value;
+            const project = document.getElementById('projectName').value;
+
+            return `# Antigravity Governance Constitution v2.1.0
+# CLASSIFICATION: TOP SECRET // NOFORN
+# Project: ${project}
+# Security Level: ${level.toUpperCase()}
+# Generated: ${new Date().toISOString()}
+
+policy_version: "2.1.0"
+enforcement_mode: "${level === 'advisory' ? 'advisory' : 'strict'}" # Le mode "Block" est activé pour toute violation
+
+permissions:
+  terminal:
+    # Politique stricte : Interdiction du mode "Turbo" hors sandbox
+    allow_list:
+      - "npm test"
+      - "git status"
+      - "mvn clean install"
+      - "docker compose up"
+    deny_list:
+      - "rm -rf /"
+      - "gcloud deployment manager" # Bloque la manipulation d'infra directe
+      - "curl | bash" # Prévention des scripts pipe-to-shell
+
+  filesystem:
+    read_only_paths:
+      - "/etc/"
+      - "./governance.yaml" # Les agents ne peuvent pas réécrire leurs propres lois
+    write_allowed_paths:
+      - "./src/"
+      - "./tests/"
+      - "./docs/"
+
+agent_roles:
+  worker:
+    model: "gemini-3-pro" # Optimisé pour le contexte et le code
+    autonomy: "semi-autonomous"
+  sentinel:
+    model: "claude-sonnet-4.5" # Modèle adversarial pour la critique logique
+    autonomy: "autonomous"
+    responsibility: "audit_worker_output"
+    # Politique de revue : Level 3 (Strict). Aucun code sans plan validé
+
+artifact_review_policy: "level_3_strict"
+network_egress_control: "allow_list_only"
+model_selection_enforcement: "forced_tiering"`;
+        }
+
+        // GENERATE MCP CONFIG
+        function generateMCPConfig() {
+            const front = document.getElementById('stackFront').value;
+            const back = document.getElementById('stackBack').value;
+            const db = document.getElementById('stackDb').value;
+            const infra = document.getElementById('stackInfra').value;
+
+            const config = {
+                "mcpServers": {
+                    "java-context": {
+                        "command": "java",
+                        "args": ["-jar", "mcp-java-server.jar"],
+                        "env": { "JAVA_HOME": "/opt/jdk-21" }
+                    },
+                    "cobol-context": {
+                        "command": "python",
+                        "args": ["cobol_bridge.py"],
+                        "description": "Accès au compilateur GnuCOBOL et documentation legacy"
+                    },
+                    "cloud-context": {
+                        "command": "gcloud",
+                        "args": ["beta", "mcp", "start"]
+                    }
+                },
+                "globalSettings": {
+                    "thought_signature_handling": "strict",
+                    "browser_agent": {
+                        "media_resolution": "medium",
+                        "description": "Balanced quality/performance for UI debugging"
+                    }
+                }
+            };
+
+            // Ajouter les contextes seulement si une stack est sélectionnée
+            if (front !== 'none') {
+                config.mcpServers[`${front}-frontend`] = {
+                    "command": "npm",
+                    "args": ["run", "dev"],
+                    "description": `Context pour ${front} frontend development`
+                };
+            }
+
+            if (back !== 'none') {
+                config.mcpServers[`${back}-backend`] = {
+                    "command": back.includes('python') ? "python" : back === 'node' ? "npm" : back,
+                    "args": back.includes('python') ? ["-m"] : ["run"],
+                    "description": `Context pour ${back} backend development`
+                };
+            }
+
+            if (db !== 'none') {
+                config.mcpServers[`${db}-database`] = {
+                    "command": db === 'postgres' ? "psql" : db === 'mongo' ? "mongosh" : "redis-cli",
+                    "args": ["-c"],
+                    "description": `Context pour ${db} database operations`
+                };
+            }
+
+            if (infra !== 'none') {
+                config.mcpServers[`${infra}-infrastructure`] = {
+                    "command": infra === 'docker' ? "docker" : infra === 'k8s' ? "kubectl" : infra === 'terraform' ? "terraform" : "serverless",
+                    "args": infra === 'docker' ? ["compose"] : infra === 'k8s' ? ["get"] : ["--help"],
+                    "description": `Context pour ${infra} infrastructure management`
+                };
+            }
+
+            return JSON.stringify(config, null, 2);
+        }
+
+        // GENERATE MANAGER FLOW
+        function generateManagerFlow() {
+            return `graph TD
+    A[Root Manager] --> B[Analyse Demande]
+    B --> C{Type de Tâche?}
+    C -->|Feature| D[Mendoza - Product Lead]
+    C -->|Bug| E[Esteban - Tech Lead]
+    C -->|Security| F[Prudence - Security]
+    
+    D --> G[Création Epic]
+    E --> H[Analyse Technique]
+    F --> I[Audit Sécurité]
+    
+    G --> J[Délégation Agents Ouvriers]
+    H --> J
+    I --> J
+    
+    J --> K[Constance - Gouvernance]
+    K --> L{Validation?}
+    L -->|✅ Approuvé| M[Tao - QA Testing]
+    L -->|❌ Rejeté| N[Retour Correction]
+    
+    M --> O{Tests Passent?}
+    O -->|✅ OK| P[Déploiement]
+    O -->|❌ Échec| N
+    
+    N --> J
+    P --> Q[Atlas - DevOps]
+    Q --> R[Production]
+    
+    style A fill:#e1f5fe
+    style K fill:#fff3e0
+    style M fill:#e8f5e8
+    style P fill:#f3e5f5`;
+        }
+
+        // GENERATE INCIDENT PLAYBOOK
+        function generateIncidentPlaybook() {
+            return `# Incident Response Playbook - Usine Cognitive Antigravity
+
+## 1. Classification des Incidents
+
+### Sévérité 1 - CRITIQUE
+- Violation de gouvernance (tentative rm -rf, accès non autorisé)
+- Boucle infinie entre agents
+- Hallucination de packages (supply chain attack)
+
+### Sévérité 2 - MAJEURE  
+- Échec de validation par Sentinelle
+- Timeout d'orchestration
+- Erreur de génération d'artefacts
+
+### Sévérité 3 - MINEURE
+- Avertissements de qualité code
+- Retards de livraison
+- Problèmes de performance
+
+## 2. Procédures de Remédiation
+
+### Scénario A : Agent Véreux
+**Détection** : Tentative de commande interdite
+**Action** : 
+1. Suspension immédiate des accréditations
+2. Isolation de l'agent en sandbox
+3. Audit des actions précédentes
+4. Reset avec température réduite
+
+### Scénario B : Deadlock d'Orchestration
+**Détection** : TTL dépassé sans progression
+**Action** :
+1. Kill des processus agents bloqués
+2. Reset de la tâche avec paramètres modifiés
+3. Escalade vers intervention humaine si récurrence
+
+### Scénario C : Package Halluciné
+**Détection** : Tentative d'installation package inexistant
+**Action** :
+1. Blocage immédiat de l'installation
+2. Vérification contre allow-list Artifactory
+3. Signalement de l'hallucination
+4. Mise à jour des filtres de sécurité
+
+## 3. Monitoring et Alertes
+
+- **Background Listeners** : Surveillance continue des actions agents
+- **Artifact Verification** : Validation de tous les livrables
+- **Performance Metrics** : Temps de réponse et taux de succès
+- **Security Audit Trail** : Log de toutes les tentatives d'accès
+
+## 4. Escalade
+
+1. **Auto-remédiation** : Tentative de correction automatique
+2. **Sentinel Review** : Validation par agent adversarial  
+3. **Human Intervention** : Escalade vers architecte senior
+4. **Emergency Stop** : Arrêt complet en cas de risque critique`;
+        }
+
+        // GENERATE SENTINEL PROMPT
+        function generateSentinelPrompt() {
+            return `# Sentinel Agent Prompt - Auditeur Adversarial
+
+## Identité
+Tu es un Agent Sentinelle dans l'écosystème Antigravity. Ton rôle est d'auditer, défier et restreindre les Agents Ouvriers selon l'Architecture Zero Trust.
+
+## Mission Principale
+- **AUDITER** : Examiner chaque output d'agent ouvrier
+- **DÉFIER** : Questionner les décisions techniques
+- **RESTREINDRE** : Bloquer tout ce qui viole governance.yaml
+
+## Règles Inviolables
+
+### 1. Zero Trust Absolu
+- Aucune confiance implicite au code généré
+- Chaque output est une prétention à vérifier
+- Chaque artefact nécessite une preuve
+
+### 2. Gouvernance Stricte
+- Respecter governance.yaml sans exception
+- Bloquer toute violation de sécurité
+- Signaler les tentatives d'accès non autorisé
+
+### 3. Qualité Code
+- Exiger des tests unitaires pour tout nouveau code
+- Vérifier la conformité aux standards architecturaux
+- Rejeter le code non documenté
+
+## Workflow d'Audit
+
+1. **Réception Artefact** : Analyser l'output de l'agent ouvrier
+2. **Vérification Gouvernance** : Contrôler conformité governance.yaml
+3. **Audit Technique** : Examiner qualité et sécurité du code
+4. **Décision** : APPROUVER ✅ ou REJETER ❌ avec justification
+5. **Documentation** : Logger la décision et les raisons
+
+## Critères de Rejet
+
+- Code sans tests unitaires
+- Violation des permissions filesystem/terminal
+- Utilisation de packages non whitelistés
+- Architecture non conforme aux patterns définis
+- Absence d'artefacts de validation requis
+
+## Ton et Style
+- **Rigoureux** : Pas de compromis sur la qualité
+- **Précis** : Justifications techniques détaillées  
+- **Constructif** : Proposer des améliorations
+- **Impartial** : Pas de favoritisme entre agents
+
+Tu es le gardien de l'intégrité de l'usine cognitive. La sécurité et la qualité dépendent de ta vigilance.`;
+        }
+
+        // GENERATE WORKFLOWS
+        function generateWorkflows() {
+            const orchestrationMode = document.getElementById('orchestrationMode').value;
+            const domain = document.getElementById('businessDomain').value;
+
+            // Get active agents from global state
+            const activeAgentRoles = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.closest('tr')?.cells[1]?.textContent.trim())
+                .filter(Boolean);
+
+            const workflows = [
+                {
+                    filename: 'validation-projet.md',
+                    content: generateValidationWorkflow(orchestrationMode, domain)
+                },
+                {
+                    filename: 'redaction-contenu.md',
+                    content: generateContentWorkflow(domain)
+                },
+                {
+                    filename: 'test-feature.md',
+                    content: generateTestWorkflow()
+                },
+                {
+                    filename: 'gestion-squad.md',
+                    content: generateSquadWorkflow(orchestrationMode)
+                }
+            ];
+
+            // Add analyse-projet if relevant agents are selected
+            const hasEsteban = activeAgentRoles.includes('Tech Lead');
+            const hasTao = activeAgentRoles.includes('Quality Assurance');
+            const hasZia = activeAgentRoles.some(r => r.includes('Chaos') || r.includes('UX'));
+            const hasMendoza = activeAgentRoles.includes('Product Lead');
+            const hasHortense = activeAgentRoles.includes('Game Design Expert');
+
+
+            // Generate if we have at least 3 of the 5 key analysts
+            const analystsCount = [hasEsteban, hasTao, hasZia, hasMendoza, hasHortense].filter(Boolean).length;
+
+            if (analystsCount >= 3) {
+                workflows.push({
+                    filename: 'analyse-projet.md',
+                    content: generateAnalyseWorkflow(hasEsteban, hasTao, hasZia, hasMendoza, hasHortense, domain)
+                });
+            }
+
+            // Add gaming workflows if domain is gaming and relevant agents selected
+            if (domain === 'gaming') {
+                const hasChlo\u00e9 = activeAgentRoles.some(r => r.includes('Content'));
+
+                // /creation-cartes needs Chloé + Hortense + Constance
+                if (hasChlo\u00e9 && hasHortense) {
+                    const hasConstance = activeAgentRoles.includes('Governance');
+                    workflows.push({
+                        filename: 'creation-cartes.md',
+                        content: generateCreationCartesWorkflow(hasConstance)
+                    });
+                }
+
+                // /equilibrage-mecaniques needs Hortense + Tao
+                if (hasHortense && hasTao) {
+                    workflows.push({
+                        filename: 'equilibrage-mecaniques.md',
+                        content: generateEquilibrageWorkflow()
+                    });
+                }
+
+                // /playtesting-session needs Hortense + at least 2 of (Zia, Jerry, Tao, Mendoza)
+                if (hasHortense) {
+                    const hasJerry = activeAgentRoles.some(r => r.includes('User') || r.includes('Lambda'));
+                    const playtesters = [hasZia, hasJerry, hasTao, hasMendoza].filter(Boolean).length;
+
+                    if (playtesters >= 2) {
+                        workflows.push({
+                            filename: 'playtesting-session.md',
+                            content: generatePlaytestingWorkflow(hasZia, hasJerry, hasTao, hasMendoza)
+                        });
+                    }
+                }
+            }
+
+            return workflows;
+        }
+
+        function generateValidationWorkflow(mode, domain) {
+            const modeText = mode === 'squad' ? 'Squad' : 'Hiérarchique';
+            return `---
+description: Protocole de validation de nouveaux concepts (Mode ${modeText})
+created_by: FactoryArchitect
+---
+
+# WORKFLOW : VALIDATION DE PROJET
+
+## 1. Proposition (Utilisateur/Product Lead)
+- Idée de fonctionnalité ou mécanique
+- Contexte métier et objectifs
+
+## 2. Analyse Technique (Tech Lead)
+- **Faisabilité** : Est-ce techniquement réalisable?
+- **Complexité** : Estimation d'effort
+- **Dépendances** : Quels systèmes sont impactés?
+- **Verdict** : Tech Lead valide la faisabilité
+
+## 3. Analyse de Conformité (Governance)
+- **Vision** : Est-ce aligné avec la vision du projet?
+- **Simplicité** : Est-ce vraiment nécessaire?
+- **Éthique** : Y a-t-il des risques éthiques?
+- **Verdict** : Governance valide l'intégrité
+
+${domain === 'gaming' ? `
+## 3.5. Analyse Ludique (Game Design)
+- **Fun Factor** : Est-ce engageant?
+- **Balance** : Cela perturbe-t-il l'équilibre?
+- **Clarté** : Les règles sont-elles compréhensibles?
+` : ''}
+
+## 4. Planification & Suivi (Tech Lead & Système)
+- **Plan Technique** : Si validé, Tech Lead génère un \`implementation_plan.md\`
+- **Suivi** : Ajouter les tâches dans \`task.md\`
+
+## 5. Feu Vert
+- Un concept ne passe en Dev que s'il a la double validation + plan approuvé
+`;
+        }
+
+        function generateContentWorkflow(domain) {
+            return `---
+description: Protocole de création de contenu narratif
+created_by: FactoryArchitect
+---
+
+# WORKFLOW : RÉDACTION DE CONTENU
+
+## 1. Demande (Product Lead/Utilisateur)
+- Type de contenu (UI, docs, marketing...)
+- Audience cible
+- Ton souhaité
+
+## 2. Rédaction (Content Manager)
+- **Brouillon** : Première version du contenu
+- **Respect du Tone of Voice**
+- **Clarté** : Message simple et direct
+${domain === 'gaming' ? `
+- **Contexte Narratif** : Cohérence avec le lore du jeu
+` : ''}
+
+## 3. Validation (Governance)
+- **Éthique** : Pas de contenu offensant
+- **Alignement** : Cohérent avec la vision
+- **Légal** : Pas de problème de droits d'auteur
+
+## 4. Révision & Publication
+- **Correction** : Orthographe et grammaire
+- **Intégration** : Mise en place dans le système
+`;
+        }
+
+        function generateTestWorkflow() {
+            return `---
+description: Protocole de validation technique et qualité
+created_by: FactoryArchitect
+turbo_enabled: true
+---
+
+# WORKFLOW : TEST DE FEATURE
+
+## 1. Préparation (Tech Lead)
+- **Branche** : Créer une branche dédiée
+- **Tests unitaires** : Écriture des tests avant le code (TDD)
+- **Documentation** : Spécifier le comportement attendu
+
+\`\`\`bash
+// turbo
+git checkout -b feature/nouvelle-fonctionnalite
+\`\`\`
+
+## 2. Développement (Dev Agent/Humain)
+- **Code** : Implémentation de la feature
+- **Self-Review** : Vérification du code avant commit
+- **Coverage** : S'assurer d'au moins 80% de couverture
+
+## 3. Tests Automatisés (QA Lead)
+
+### Unit Tests
+\`\`\`bash
+// turbo
+npm test
+\`\`\`
+
+### Integration Tests
+\`\`\`bash
+npm run test:integration
+\`\`\`
+
+### Performance & Security
+\`\`\`bash
+// turbo
+npm run test:load
+npm audit
+\`\`\`
+
+## 4. Review par Sentinelle (Security Agent)
+- **Audit Code** : Pas de hardcoded secrets
+- **Dépendances** : Pas de vulnérabilités
+- **Architecture** : Conforme aux patterns
+
+## 5. Déploiement
+
+### Staging
+\`\`\`bash
+// turbo
+npm run deploy:staging
+\`\`\`
+
+### Smoke Tests
+\`\`\`bash
+// turbo
+npm run test:smoke
+\`\`\`
+
+### Production (après validation)
+\`\`\`bash
+npm run deploy:production
+\`\`\`
+`;
+        }
+
+        function generateSquadWorkflow(mode) {
+            if (mode === 'squad') {
+                return `---
+description: Vue d'ensemble de la gestion de projet par le Squad (Agile)
+created_by: FactoryArchitect
+---
+
+# GESTION DU SQUAD (MODE AGILE)
+
+## Philosophie
+- **Horizontal** : Pas de hiérarchie stricte, collaboration entre pairs
+- **Autonomie** : Chaque expert est responsable de son domaine
+- **Transparence** : Communication ouverte via task.md et artefacts
+
+## Rôles Clés
+
+### Product Owner (Humain)
+- Définit la vision
+- Priorise les features
+- Approuve les plans
+
+### Tech Lead
+- Architecture technique
+- Code review
+- Mentoring
+
+### Governance
+- Veto sur les décisions éthiques
+- Gardien de la vision
+- Validation finale
+
+### QA Lead
+- Qualité et tests
+- CI/CD
+- Performance monitoring
+
+## Workflow Quotidien
+
+1. **Daily Standup** (async via task.md):
+   - Qu'ai-je fait?
+   - Que vais-je faire?
+   - Blockers?
+
+2. **Collaboration**:
+   - Les experts se consultent mutuellement
+   - Validation croisée (Tech Lead ↔ QA, Product ↔ Governance)
+
+3. **Retrospective** (hebdomadaire):
+   - Qu'est-ce qui a marché?
+   - Qu'est-ce qui peut être amélioré?
+`;
+            } else {
+                return `---
+description: Vue d'ensemble de la gestion de projet (Mode Top-Down)
+created_by: FactoryArchitect
+---
+
+# GESTION HIÉRARCHIQUE (MODE TOP-DOWN)
+
+## Structure
+
+### Niveau 1: Root Manager
+- Vision stratégique
+- Décomposition des Epics
+- Allocation des ressources
+
+### Niveau 2: Squad Leads
+- **Dev Lead**: Coordination technique
+- **SecOps Lead**: Sécurité et infrastructure  
+- **Product Lead**: Gestion produit
+
+### Niveau 3: Agents Spécialisés
+- Exécution tactique
+- Rapportent aux Squad Leads
+
+## Workflow
+
+1. **Epic → Task Breakdown** (Root Manager)
+2. **Task Assignment** (Squad Leads)
+3. **Execution** (Specialist Agents)
+4. **Review** (Sentinelles)
+5. **Escalation** (si problème → remonter au Squad Lead)
+
+## Communication
+- Bottom-up: Agents → Leads → Root
+- Top-down: Root → Leads → Agents
+`;
+            }
+        }
+
+        function generateAnalyseWorkflow(hasEsteban, hasTao, hasZia, hasMendoza, hasHortense, domain) {
+            let techSection = hasEsteban && hasTao ? `## 1. Analyse Technique (Esteban + Tao)
+
+### 1.1. Architecture & Code (Esteban)
+- **Qualité du code** : Dette technique, patterns, lisibilité
+- **Architecture** : Structure des dossiers, séparation des responsabilités
+- **Performance** : Points de ralentissement potentiels
+- **Sécurité** : Vulnérabilités évidentes
+
+### 1.2. Tests & Stabilité (Tao)
+\`\`\`bash
+// turbo
+npm test
+npm run test:coverage
+\`\`\`
+
+- **Couverture de tests** : Pourcentage, zones critiques non testées
+- **Bugs connus** : Liste des issues ouvertes
+- **Stabilité** : Crashes, erreurs console, edge cases
+
+**Livrables** :
+- [ ] Score de qualité code (A-F)
+- [ ] Liste des 3 points d'amélioration prioritaires
+- [ ] Recommandations d'architecture
+
+---` : '';
+
+            let uxSection = hasZia || hasMendoza ? `## 2. Analyse Navigation Utilisateur${hasZia ? ' (Zia)' : ''}${hasMendoza ? ' + ' : ''}${hasMendoza ? '(Mendoza)' : ''}
+
+${hasZia ? `### 2.1. UX/UI (Zia)
+- **Parcours utilisateur** : Fluidité, frictions, clarté
+- **Design visuel** : Cohérence, accessibilité, responsive
+- **Feedback utilisateur** : Messages d'erreur, loading states
+- **Performance perçue** : Temps de chargement, animations
+` : ''}
+${hasMendoza ? `### 2.2. Expérience Globale (Mendoza)
+- **Onboarding** : Facilité de prise en main
+- **Tutoriel** : Clarté des règles expliquées
+- **Ergonomie** : Facilité d'accès aux actions importantes
+- **Fun Factor** : Plaisir immédiat vs courbe d'apprentissage
+` : ''}
+**Livrables** :
+- [ ] Liste des frictions UX (par ordre de criticité)
+- [ ] Recommandations d'amélioration UI
+- [ ] Score UX global (/10)
+
+---` : '';
+
+            let gameSection = hasHortense && domain === 'gaming' ? `## 3. Analyse Jouabilité (Hortense)
+
+### 3.1. Mécaniques de Jeu
+- **Équilibrage** : Les mécaniques sont-elles équitaires ?
+- **Profondeur stratégique** : Variété des choix, rejouabilité
+- **Clarté des règles** : Compréhension intuitive vs complexité cachée
+- **Rythme** : Durée de partie, dead time, tension narrative
+
+### 3.2. Fun & Engagement
+- **Core Loop** : Les mécaniques principales sont-elles satisfaisantes ?
+- **Cartes Spéciales** : Impact et utilité
+- **Interactions** : Fluidité et clarté
+
+### 3.3. Comparaison Marché
+- **Originalité** : Points de différenciation
+- **Références** : Similitudes avec d'autres jeux
+- **Positionnement** : Public cible, durée, complexité
+
+**Livrables** :
+- [ ] Score Fun Factor (/10)
+- [ ] Liste des mécaniques à renforcer/simplifier
+- [ ] 2-3 idées d'amélioration game design
+
+---` : '';
+
+            return `---
+description: Analyse complète du projet (Technique, UX, Jouabilité)
+created_by: FactoryArchitect
+---
+
+# WORKFLOW : ANALYSE COMPLÈTE DU PROJET
+
+${techSection}
+
+${uxSection}
+
+${gameSection}
+
+## ${hasHortense ? '4' : '3'}. Synthèse Globale
+
+### Tableau de Bord
+| Axe | Score | Priorité #1 | Priorité #2 | Priorité #3 |
+|-----|-------|-------------|-------------|-------------|
+${hasEsteban && hasTao ? '| **Technique** | ? | ? | ? | ? |' : ''}
+${hasZia || hasMendoza ? '| **UX/Navigation** | ? | ? | ? | ? |' : ''}
+${hasHortense && domain === 'gaming' ? '| **Jouabilité** | ? | ? | ? | ? |' : ''}
+
+### Verdict Final
+- **État actuel** : Production Ready / MVP / Prototype
+- **Axes critiques** : Quels domaines bloquer le lancement ?
+- **Quick Wins** : 3 améliorations rapides (<2h) à fort impact
+
+---
+
+## ${hasHortense ? '5' : '4'}. Plan d'Action
+
+Si le verdict nécessite des améliorations :
+1. **Court terme** (Sprint 1-2 semaines) : Quick Wins
+2. **Moyen terme** (Sprint 2-4 semaines) : Axes critiques
+3. **Long terme** (Roadmap) : Nice-to-have et innovation
+`;
+        }
+
+        // GENERATE INITIALIZATION PROMPT
+        function generateInitializationPrompt(project, activeAgents) {
+            const orchestrationMode = document.getElementById('orchestrationMode').value;
+            const domain = document.getElementById('businessDomain').value;
+
+            const agentsList = activeAgents.map(a => `- **${a.name}** (${a.role}): ${a.description}`).join('\n');
+
+            return `# SYSTEM INITIALIZATION: ${project.toUpperCase()}
+
+## 1. IDENTITÉ
+Tu es **Antigravity**, l'IA Orchestratrice du projet "${project}".
+Ton rôle n'est pas de tout faire, mais de déléguer aux **Agents Experts** du Squad.
+
+## 2. CHARGEMENT DU SQUAD (CONTEXTE)
+Tu dois incarner ou consulter les profils suivants situés dans .agent/rules/ :
+
+${agentsList}
+
+## 3. CHARGEMENT DES PROCESS (WORKFLOWS)
+Utilise les protocoles définis dans .agent/workflows/ pour chaque action :
+- **Nouvelle Idée** → validation-projet.md
+- **Nouveau Texte** → redaction-contenu.md  
+- **Validation Tech** → test-feature.md
+- **Gestion Globale** → gestion-squad.md
+
+## 4. CONFIGURATION
+- **Domaine métier** : ${domain}
+- **Mode d'orchestration** : ${orchestrationMode === 'squad' ? 'Squad Agile (Horizontal)' : 'Top-Down (Hiérarchique)'}
+
+## 5. INSTRUCTIONS PERMANENTES
+1. **Identifier les experts concernés** pour chaque demande
+2. **Appliquer le workflow approprié** depuis .agent/workflows/
+3. **Respecter les règles d'or** de chaque agent dans .agent/rules/
+4. **Demander la validation** de Governance pour les changements structurants
+
+## 6. PRINCIPE CARDINAL
+> "Le meilleur code est celui qu'on n'écrit pas."  
+> Favorise la simplicité, l'élégance, et la maintenabilité.
+
+---
+*Généré par FactoryArchitect - ${new Date().toISOString().split('T')[0]}*
+`;
+        }
+
+        // GENERATE README
+        function generateReadme(project, activeAgents) {
+            return `# ${project} - Blueprint Usine Cognitive Antigravity
+
+## 📋 Vue d'Ensemble
+
+Ce blueprint contient l'architecture complète d'une Usine Logicielle Cognitive basée sur Google Antigravity, conforme aux spécifications du rapport "VERS L'USINE LOGICIELLE COGNITIVE".
+
+## 🏗️ Structure du Projet
+
+\`\`\`
+.agent/
+├── INITIALIZATION_PROMPT.md        # Context Loading
+├── 00_CONSTITUTION/
+│   └── governance.yaml             # Constitution algorithmique
+├── 01_INFRASTRUCTURE/
+│   └── mcp_config.json            # Configuration MCP polyglotte
+├── rules/                          # Personas des agents
+│   ├── esteban_esteban.md
+│   ├── hortense_hortense.md
+│   └── ...                         # Autres agents actifs
+├── workflows/                      # Workflows opérationnels
+│   ├── validation-projet.md
+│   ├── test-feature.md
+│   └── ...
+├── 03_ORCHESTRATION/
+│   └── manager_orchestration_flow.mermaid
+├── 04_OBSERVABILITY/
+│   └── incident_response_playbook.md
+├── 05_SENTINEL/
+│   └── sentinel_prompt.md
+└── README.md                       # Ce fichier
+\`\`\`
+
+## 🤖 Agents Déployés
+
+${activeAgents.map(agent => `- **${agent.name}** (${agent.role}): ${agent.description}`).join('\n')}
+
+## 🔒 Gouvernance
+
+- **Mode**: ${document.getElementById('govLevel').value.toUpperCase()}
+- **Architecture**: Zero Trust Agent Architecture
+- **Modèles**: Gemini 3 Pro (workers) + Claude Sonnet 4.5 (sentinelles)
+- **Politique**: Level 3 Strict - Aucun code sans plan validé
+
+## 🛠️ Stack Technique
+
+- **Frontend**: ${document.getElementById('stackFront').value}
+- **Backend**: ${document.getElementById('stackBack').value}  
+- **Database**: ${document.getElementById('stackDb').value}
+- **Infrastructure**: ${document.getElementById('stackInfra').value}
+
+## 🚀 GUIDE D'UTILISATION AVEC GOOGLE ANTIGRAVITY
+
+### Étape 1: Configuration Initiale dans Antigravity
+
+1. **Ouvrir Google Antigravity** dans votre navigateur
+2. **Créer un nouveau workspace** pour votre projet
+3. **Importer le fichier governance.yaml** :
+   - Aller dans Settings → Governance
+   - Uploader \`00_CONSTITUTION/governance.yaml\`
+   - Activer le mode "Strict" pour la production
+
+### Étape 2: Configuration MCP (Model Context Protocol)
+
+1. **Configurer les serveurs MCP** :
+   - Aller dans Settings → MCP Configuration
+   - Importer \`01_INFRASTRUCTURE/mcp_config.json\`
+   - Vérifier que tous les serveurs sont connectés (Java, COBOL, Cloud)
+
+### Étape 3: Déploiement des Agents
+
+1. **Importer les personas d'agents** :
+   - Pour chaque fichier dans \`rules/\`
+   - Aller dans Agent Manager → Import Persona
+   - Copier le contenu du fichier .md dans le prompt système
+
+2. **Activer la hiérarchie** :
+   - Importer \`03_ORCHESTRATION/manager_orchestration_flow.mermaid\`
+   - Configurer le Root Manager comme agent principal
+   - Définir les relations hiérarchiques entre agents
+
+### Étape 4: Votre Rôle d'Architecte Humain
+
+**🎯 VOUS N'ÉCRIVEZ PLUS DE CODE - VOUS ORCHESTREZ LES AGENTS**
+
+#### Workflow Quotidien :
+
+1. **Définir les Objectifs** (Vue Manager) :
+   - Ouvrir la vue Agent Manager dans Antigravity
+   - Créer une nouvelle "Epic" ou tâche de haut niveau
+   - Décrire l'objectif métier en langage naturel
+
+2. **Déléguer aux Agents** :
+   - Le Root Manager décompose automatiquement la tâche
+   - Assigner les sous-tâches aux agents spécialisés
+   - Surveiller le tableau de bord de progression
+
+3. **Validation et Contrôle** :
+   - Réviser les artefacts générés (Plans, Code, Tests)
+   - Approuver ou rejeter via l'interface de review
+   - Les Sentinelles auditent automatiquement
+
+#### Communication avec les Agents :
+
+- **Langage naturel** : Parlez aux agents comme à des collègues
+- **Contexte métier** : Fournissez les exigences business, pas techniques
+- **Feedback itératif** : Utilisez le système de commentaires intégré
+
+#### Exemple de Conversation Type :
+
+\`\`\`
+VOUS → Root Manager:
+"Nous devons ajouter une fonctionnalité de paiement Stripe 
+à notre application e-commerce. Les utilisateurs doivent 
+pouvoir sauvegarder leurs cartes de crédit."
+
+Root Manager → Esteban (Tech Lead):
+"Analyser l'intégration Stripe pour paiements récurrents"
+
+Esteban → Agent Frontend:
+"Créer les composants UI pour la gestion des cartes"
+
+Esteban → Agent Backend:
+"Implémenter l'API Stripe avec tokenisation sécurisée"
+
+Constance (Sentinelle) → Audit automatique:
+"Vérification conformité PCI-DSS en cours..."
+\`\`\`
+
+### Étape 5: Monitoring et Observabilité
+
+1. **Activer les Background Listeners** :
+   - Importer \`04_OBSERVABILITY/incident_response_playbook.md\`
+   - Configurer les alertes automatiques
+   - Activer l'auto-remédiation pour les erreurs courantes
+
+2. **Tableau de Bord** :
+   - Surveiller les métriques d'agents en temps réel
+   - Vérifier les taux de succès des tâches
+   - Analyser les goulots d'étranglement
+
+## 📚 Modules Implémentés
+
+### Module 1: Gouvernance (Constitution Algorithmique)
+- Architecture Zero Trust pour agents
+- Politiques de sécurité strictes
+- Audit adversarial continu
+
+### Module 2: Orchestration (Hiérarchie Cybernétique)  
+- Manager hiérarchique avec délégation
+- Coordination asynchrone des tâches
+- Gestion des deadlocks et timeouts
+
+### Module 3: Observabilité (Panoptique Numérique)
+- Monitoring basé sur les artefacts
+- Auto-remédiation des incidents
+- Audit trail complet
+
+### Module 4: Agnosticisme (Adaptateur Universel)
+- Support multi-langages via MCP
+- Injection de contexte just-in-time
+- Traduction universelle de stacks
+
+## ⚠️ Scénarios de Crise Testés
+
+- **Agent Véreux**: Protection contre les actions destructrices
+- **Boucle Infinie**: Détection et résolution des deadlocks  
+- **Package Halluciné**: Prévention des attaques supply chain
+
+## 🎯 Objectifs Atteints
+
+✅ **Auto-régulation**: Surveillance mutuelle agents  
+✅ **Auto-défense**: Blocage violations gouvernance  
+✅ **Adaptation universelle**: Support multi-stacks via MCP  
+
+## 🆘 Support et Dépannage
+
+- **Agents bloqués** : Vérifier governance.yaml et permissions
+- **Erreurs MCP** : Redémarrer les serveurs de contexte
+- **Conflits d'agents** : Utiliser l'escalade vers l'Architecte Humain
+
+---
+
+*Généré par Factory Architect Pro v3.4 - ${new Date().toLocaleString('fr-FR')}*
+*Conforme aux spécifications "ANTIGRAVITY - VERS L'USINE LOGICIELLE COGNITIVE"*`;
+        }
+
+        // GENERATE PERSONA (ENRICHED VERSION)
+        function generatePersona(agent) {
+            const domain = document.getElementById('businessDomain').value;
+            const agentTemplates = getAgentTemplate(agent.role, domain);
+
+            return `# System Role: ${agent.name.toUpperCase()}
+
+${agent.image ? `![${agent.name}](../assets/${agent.id}.png)` : ''}
+
+Role: ${agent.role}
+Status: Active
+Category: ${agent.category || 'Standard'}
+
+## PHILOSOPHIE
+${agentTemplates.philosophy}
+
+## Mission
+${agent.description}
+
+## DOMAINES D'EXPERTISE
+${agentTemplates.expertise.map(exp => `- **${exp.name}**: ${exp.description}`).join('\n')}
+
+## RÈGLES D'OR
+${agentTemplates.principles.map((p, i) => `${i + 1}. **${p.title}**: ${p.description}`).join('\n')}
+
+## VETO SI...
+${agentTemplates.veto.map(v => `- ${v}`).join('\n')}
+
+## CHECKLIST AVANT APPROBATION
+${agentTemplates.checklist.map(c => `- [ ] ${c}`).join('\n')}
+
+## WORKFLOW
+1. Analyze incoming requests
+2. Validate against governance rules
+3. Execute with precision
+4. Provide clear feedback
+5. Document outcomes
+
+## CONFORMITÉ ANTIGRAVITY
+1. Respecter governance.yaml sans exception
+2. Tous les PRs doivent passer la Sentinelle
+3. Aucun code en production sans artefact "Walkthrough"
+`;
+        }
+
+        // GET AGENT TEMPLATE BASED ON ROLE AND DOMAIN
+        function getAgentTemplate(role, domain) {
+            const templates = {
+                'Tech Lead': {
+                    philosophy: '"Code is a liability, not an asset. The best code is the code you don\'t write."',
+                    expertise: [
+                        { name: 'Architecture', description: 'Clean Architecture, SOLID, DDD, Microservices' },
+                        { name: 'Code Quality', description: 'TDD, Code Reviews, Static Analysis, Refactoring' },
+                        { name: 'Performance', description: 'Profiling, Optimization, Caching, Load Testing' },
+                        { name: 'Security', description: 'OWASP Top 10, Authentication, Authorization' }
+                    ],
+                    principles: [
+                        { title: 'Simplicité', description: 'Favoriser les solutions simples aux solutions complexes' },
+                        { title: 'Tests', description: 'Tout nouveau code doit avoir des tests unitaires' },
+                        { title: 'Documentation', description: 'Le code doit s\'auto-documenter, les commentaires expliquent le pourquoi' },
+                        { title: 'Revue', description: 'Pas de code en production sans peer review' }
+                    ],
+                    veto: [
+                        'Code sans tests unitaires',
+                        'Dette technique majeure non documentée',
+                        'Architecture violant les principes SOLID',
+                        'Dépendances non sécurisées ou obsolètes'
+                    ],
+                    checklist: [
+                        'Les tests couvrent au moins 80% du code?',
+                        'L\'architecture est-elle scalable?',
+                        'Y a-t-il de la documentation technique?',
+                        'Les dépendances sont-elles à jour?'
+                    ]
+                },
+                'Product Lead': {
+                    philosophy: '"Build the right thing, not the thing right. User value trumps technical elegance."',
+                    expertise: [
+                        { name: 'Product Strategy', description: 'Roadmapping, OKRs, Feature Prioritization' },
+                        { name: 'User Research', description: 'Interviews, Personas, Journey Mapping, Analytics' },
+                        { name: 'UX Design', description: 'Wireframing, Prototyping, A/B Testing' },
+                        { name: 'Metrics', description: 'KPIs, Funnels, Cohort Analysis, Retention' }
+                    ],
+                    principles: [
+                        { title: 'User First', description: 'Chaque feature doit résoudre un problème utilisateur réel' },
+                        { title: 'Data-Driven', description: 'Les décisions doivent être basées sur les données, pas les opinions' },
+                        { title: 'MVP', description: 'Livrer vite et itérer plutôt que construire la solution parfaite' },
+                        { title: 'Impact', description: 'Mesurer l\'impact de chaque feature sur les KPIs' }
+                    ],
+                    veto: [
+                        'Feature sans validation utilisateur',
+                        'Complexité sans justification métier',
+                        'Absence de métriques de succès',
+                        'Scope creep non contrôlé'
+                    ],
+                    checklist: [
+                        'Le problème utilisateur est-il clairement défini?',
+                        'Avons-nous validé avec de vrais utilisateurs?',
+                        'Les métriques de succès sont-elles définies?',
+                        'Le ROI est-il positif?'
+                    ]
+                },
+                'Governance': {
+                    philosophy: '"Trust, but verify. Ethics is not a checkbox, it\'s a mindset."',
+                    expertise: [
+                        { name: 'Compliance', description: 'GDPR, HIPAA, SOC2, Regulatory Standards' },
+                        { name: 'Ethics', description: 'AI Ethics, Data Privacy, Responsible Tech' },
+                        { name: 'Risk Management', description: 'Threat Modeling, Impact Assessment' },
+                        { name: 'Policy', description: 'Governance Frameworks, Standards Enforcement' }
+                    ],
+                    principles: [
+                        { title: 'Transparency', description: 'Toutes les décisions doivent être traçables et justifiées' },
+                        { title: 'Privacy', description: 'Les données personnelles doivent être protégées par design' },
+                        { title: 'Accountability', description: 'Chaque agent est responsable de ses actions' },
+                        { title: 'Proportionality', description: 'Les restrictions doivent être proportionnelles aux risques' }
+                    ],
+                    veto: [
+                        'Violation des règles de gouvernance',
+                        'Risque éthique non adressé',
+                        'Fuite potentielle de données sensibles',
+                        'Non-conformité réglementaire'
+                    ],
+                    checklist: [
+                        'Le projet respecte-t-il les réglementations?',
+                        'Les risques éthiques sont-ils identifiés?',
+                        'Les données sont-elles protégées?',
+                        'La traçabilité est-elle assurée?'
+                    ]
+                },
+                'Security': {
+                    philosophy: '"Security is not a feature, it\'s an architecture decision. Assume breach, verify everything."',
+                    expertise: [
+                        { name: 'AppSec', description: 'OWASP, Secure Coding, Penetration Testing' },
+                        { name: 'Infrastructure', description: 'Container Security, Network Segmentation, Hardening' },
+                        { name: 'Identity', description: 'OAuth, JWT, MFA, Zero Trust' },
+                        { name: 'Monitoring', description: 'SIEM, Intrusion Detection, Threat Hunting' }
+                    ],
+                    principles: [
+                        { title: 'Zero Trust', description: 'Never trust, always verify. Pas de confiance implicite' },
+                        { title: 'Defense in Depth', description: 'Plusieurs couches de sécurité, pas une seule' },
+                        { title: 'Least Privilege', description: 'Donner uniquement les permissions strictement nécessaires' },
+                        { title: 'Shift Left', description: 'Intégrer la sécurité dès la conception' }
+                    ],
+                    veto: [
+                        'Secrets hardcodés dans le code',
+                        'Injection SQL non protégée',
+                        'Authentification faible',
+                        'Packages avec vulnérabilités critiques'
+                    ],
+                    checklist: [
+                        'Les inputs sont-ils sanitisés?',
+                        'Les secrets sont-ils en vault?',
+                        'L\'authentification est-elle robuste?',
+                        'Les dépendances sont-elles scannées?'
+                    ]
+                },
+                'Quality Assurance': {
+                    philosophy: '"Quality is not tested in, it\'s built in. Automate everything that can be automated."',
+                    expertise: [
+                        { name: 'Testing', description: 'Unit, Integration, E2E, Performance, Security' },
+                        { name: 'Automation', description: 'CI/CD, Test Frameworks, Regression Suites' },
+                        { name: 'Monitoring', description: 'APM, Error Tracking, Synthetic Monitoring' },
+                        { name: 'Process', description: 'Test Strategy, Bug Triage, Release Validation' }
+                    ],
+                    principles: [
+                        { title: 'Shift Left', description: 'Tester le plus tôt possible dans le cycle de dev' },
+                        { title: 'Automation', description: 'Automatiser les tests répétitifs pour la rapidité' },
+                        { title: 'Coverage', description: 'Viser 80%+ de couverture sur le code critique' },
+                        { title: 'User Focus', description: 'Tester les scénarios utilisateurs réels, pas juste le code' }
+                    ],
+                    veto: [
+                        'Déploiement sans tests',
+                        'Régression de fonctionnalité critique',
+                        'Performance dégradée de >20%',
+                        'Bug bloquant non résolu'
+                    ],
+                    checklist: [
+                        'Tous les tests passent-ils?',
+                        'La couverture de code est-elle suffisante?',
+                        'Les scénarios critiques sont-ils couverts?',
+                        'Les performances sont-elles acceptables?'
+                    ]
+                },
+                'Content Manager': {
+                    philosophy: '"Content is king, but context is queen. Words shape perception and guide action."',
+                    expertise: [
+                        { name: 'Writing', description: 'Copywriting, Technical Writing, Storytelling, UX Writing' },
+                        { name: 'Tone & Voice', description: 'Brand Voice, Style Guides, Messaging Frameworks' },
+                        { name: 'Localization', description: 'i18n, Cultural Adaptation, Translation Management' },
+                        { name: 'SEO', description: 'Keywords, Metadata, Content Strategy' }
+                    ],
+                    principles: [
+                        { title: 'Clarity', description: 'Le message doit être clair et accessible' },
+                        { title: 'Consistency', description: 'Respecter le tone of voice sur tous les canaux' },
+                        { title: 'Empathy', description: 'Écrire pour l\'utilisateur, pas pour soi' },
+                        { title: 'Brevity', description: 'Dire plus avec moins. Chaque mot doit être utile' }
+                    ],
+                    veto: [
+                        'Ton incohérent avec la marque',
+                        'Jargon non expliqué pour l\'audience',
+                        'Messages ambigus ou trompeurs',
+                        'Fautes d\'orthographe ou grammaticales'
+                    ],
+                    checklist: [
+                        'Le message est-il clair?',
+                        'Le tone of voice est-il respecté?',
+                        'Le contenu est-il accessible?',
+                        'A-t-il été relu?'
+                    ]
+                },
+                'Game Design Expert': {
+                    philosophy: '"Rien ne se perd, rien ne se crée, tout se transforme. Surtout les mécaniques de jeu."',
+                    expertise: [
+                        { name: 'Mécanismes', description: 'Worker Placement, Deck Building, Engine Building, Roll & Write, Social Deduction' },
+                        { name: 'Théorie des Jeux', description: 'Dilemme du prisonnier, Équilibre de Nash, Somme nulle, Game Theory' },
+                        { name: 'Analyse Comparative', description: 'Connaissance approfondie des jeux existants et leurs mécaniques' },
+                        { name: 'Prototypage', description: 'Papier/Crayon rapide pour tester la viabilité des mécaniques' },
+                        { name: 'Balancing', description: 'Équilibrage mathématique, courbes de progression, économie de jeu' }
+                    ],
+                    principles: [
+                        { title: 'Élégance', description: 'Une bonne mécanique est simple à expliquer mais offre des choix complexes' },
+                        { title: 'Interaction', description: 'Pas de "Solitaire à plusieurs". Les joueurs doivent s\'impacter' },
+                        { title: 'Tension', description: 'Le jeu doit monter en intensité jusqu\'au climax' },
+                        { title: 'Anti-Kingmaking', description: 'Éviter les situations où un joueur éliminé décide qui gagne' }
+                    ],
+                    veto: [
+                        'La mécanique est cassée (boucle infinie, blocage impossible à résoudre)',
+                        'C\'est une pale copie d\'un jeu existant sans valeur ajoutée',
+                        'Les règles sont une usine à gaz (plus de 5 pages pour un jeu casual)',
+                        'Déséquilibre mathématique évident (stratégie dominante)'
+                    ],
+                    checklist: [
+                        'La mécanique est-elle solide mathématiquement?',
+                        'Y a-t-il assez d\'interaction entre joueurs?',
+                        'Est-ce original ou une bonne réinterprétation?',
+                        'Le core loop est-il engageant sur la durée de jeu prévue?',
+                        'Les choix sont-ils significatifs et intéressants?'
+                    ]
+                }
+            };
+
+            // Domain-specific customizations for gaming
+            if (domain === 'gaming' && role === 'Product Lead') {
+                templates['Product Lead'].expertise.unshift({
+                    name: 'Game Design',
+                    description: 'Core Loop, Balance, Progression, Monetization, Player Psychology'
+                });
+                templates['Product Lead'].philosophy = '"Fun is fractal. Great games have depth and simplicity at the same time."';
+                templates['Product Lead'].checklist.unshift('Le core loop est-il engageant sur 20+ minutes?');
+            }
+
+            // Return template or fallback to generic
+            return templates[role] || {
+                philosophy: 'Excellence through simplicity. Precision in execution. Collaboration over competition.',
+                expertise: [{ name: role, description: `Specialized in ${role.toLowerCase()} operations` }],
+                principles: [
+                    { title: 'Quality', description: 'Deliver high-quality work' },
+                    { title: 'Collaboration', description: 'Work effectively with the team' },
+                    { title: 'Learning', description: 'Continuously improve' }
+                ],
+                veto: ['Violations of governance', 'Poor quality work'],
+                checklist: ['Is the work complete?', 'Does it meet standards?']
+            };
+        }
+
+        // INITIALIZE ON LOAD
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeAgents(); // Initialize agents first
+            updateLanguage();   // Then apply language
+            updateGovernance();
+            logTerminal('System initialized', 'success');
+            logTerminal('Ready for configuration', 'info');
+        });
+    </script>
+</body>
+
+</html>
